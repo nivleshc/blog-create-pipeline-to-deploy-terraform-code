@@ -1,0 +1,9 @@
+version: "2.1"
+services:
+    terraform_container:
+        image: hashicorp/terraform:1.4.2
+        network_mode: bridge
+        volumes:
+            - ./terraform:/terraform
+        env_file:
+            - .env

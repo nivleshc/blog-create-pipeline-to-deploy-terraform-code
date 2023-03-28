@@ -1,0 +1,34 @@
+version: 0.2
+
+env:
+  exported-variables:
+    - TERRAFORM_PLAN_STATUS
+
+phases:
+  pre_build:
+    commands:
+  
+  build:
+    commands:
+      - echo retrieve container credentials
+      - credentials=$(curl 169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI)
+      - export credentials
+      - export AWS_ACCESS_KEY_ID=$(echo "${credentials}" | jq -r '.AccessKeyId')
+      - export AWS_SECRET_ACCESS_KEY=$(echo "${credentials}" | jq -r '.SecretAccessKey')
+      - export AWS_SESSION_TOKEN=$(echo "${credentials}" | jq -r '.Token')
+      - make terraform_init
+      - make terraform_plan
+      # get status of terraform plan
+      - TERRAFORM_PLAN_STATUS=$(cat /tmp/tfplan.result)
+      - echo TERRAFORM_PLAN_STATUS $TERRAFORM_PLAN_STATUS
+  post_build:
+    commands:
+      # unset all sensitive environment variables
+      - unset AWS_ACCESS_KEY_ID
+      - unset AWS_SECRET_ACCESS_KEY
+      - unset AWS_SESSION_TOKEN
+
+artifacts:
+  files:
+    - '**/*'
+  name: infra_artifacts_$(date +%Y-%m-%d)
