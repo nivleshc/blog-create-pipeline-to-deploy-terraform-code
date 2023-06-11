@@ -34,8 +34,9 @@ usage:
 	@echo make terraform_validate - validates the terraform code.
 	@echo make terraform_init     - initialise the terraform project.
 	@echo make terraform_plan     - create a plan for the changes that will be deployed.
-	@echo make terraform_apply    - apply the changes from the plan stage
-	@echo make terraform_destroy  - destroy all that was deployed
+	@echo make terraform_apply    - apply the changes from the plan stage.
+	@echo make terraform_destroy  - destroy all that was deployed.
+	@echo make clean              - delete all terraform provider and plan files.
 	@echo make - show this help
 	@echo 
 
