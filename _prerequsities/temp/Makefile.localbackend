@@ -10,7 +10,7 @@ TF_S3_BUCKET_NAME := <mys3bucketname>
 # store the terraform state files inside a root folder in the s3 bucket
 TF_S3_BUCKET_KEY_PREFIX := terraform
 TF_WORKSPACE_KEY_PREFIX := ${TF_S3_BUCKET_KEY_PREFIX}/${PROJECT_NAME}
-TF_DYNAMODB_LOCK_TABLE_NAME := ${PROJECT_NAME_PREFIX}_${ENV}-terraform-lock
+TF_DYNAMODB_LOCK_TABLE_NAME := ${PROJECT_NAME_PREFIX}-${ENV}-terraform-lock
 TF_WORKSPACE_NAME := ${ENV}
 
 TF_CLI := docker-compose run --rm terraform_container
@@ -30,17 +30,21 @@ all: usage
 usage:
 	@echo
 	@echo === Help: Command Reference ===
-	@echo make terraform_fmt     - format the terraform files in the standard style.
-	@echo make terraform_init    - initialise the terraform project.
-	@echo make terraform_plan    - create a plan for the changes that will be deployed.
-	@echo make terraform_apply   - apply the changes from the plan stage
-	@echo make terraform_destroy - destroy all that was deployed
+	@echo make terraform_fmt      - format the terraform files in the standard style.
+	@echo make terraform_validate - validates the terraform code.
+	@echo make terraform_init     - initialise the terraform project.
+	@echo make terraform_plan     - create a plan for the changes that will be deployed.
+	@echo make terraform_apply    - apply the changes from the plan stage
+	@echo make terraform_destroy  - destroy all that was deployed
 	@echo make - show this help
 	@echo 
 
 terraform_fmt:
 	${TF_CLI}  -chdir=${TF_FOLDER} fmt -recursive .	
-	
+
+terraform_validate:
+	${TF_CLI}  -chdir=${TF_FOLDER} validate
+
 terraform_init:
 	${TF_CLI}  -chdir=${TF_FOLDER} init
 

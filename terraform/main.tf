@@ -58,10 +58,6 @@ resource "aws_codebuild_project" "infra_plan_project" {
       fetch_submodules = true
     }
   }
-
-  tags = {
-    Environment = var.env
-  }
 }
 
 resource "aws_codebuild_project" "infra_apply_project" {
@@ -98,10 +94,6 @@ resource "aws_codebuild_project" "infra_apply_project" {
     git_submodules_config {
       fetch_submodules = true
     }
-  }
-
-  tags = {
-    Environment = var.env
   }
 }
 

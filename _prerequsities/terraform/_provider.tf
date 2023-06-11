@@ -15,7 +15,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Environment = <myenv>
+      Environment = "<myenv>"
       Owner       = "<myname>"
     }
   }

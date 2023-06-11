@@ -9,8 +9,17 @@ variable "project" {
 }
 
 variable "owner_email" {
-  type = string
+  type        = string
   description = "Owner's email address. This will be subscribed to the sns topic that will receive approval requests"
+}
+
+variable "s3_bucket_name" {
+  type        = string
+  description = "Name of the Amazon S3 bucket where Terraform state file will be stored"
+}
+
+variable "s3_bucket_key_prefix" {
+  description = "Key prefix inside which the Terraform state file will be stored in the Amazon S3 bucket"
 }
 
 variable "dynamodb_lock_table_name" {

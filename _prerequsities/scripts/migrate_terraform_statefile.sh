@@ -8,7 +8,13 @@ aws s3 cp ./terraform/terraform.tfstate s3://${TF_S3_BUCKET_NAME}/${TF_WORKSPACE
 echo "[INFO] moving local state files to backup folder"
 mkdir -v ./tfstatebackup
 mv -v ./terraform/terraform.tfstate ./tfstatebackup
-mv -v ./terraform/terraform.tfstate.backup ./tfstatebackup
+
+if [ -f "./terraform/terraform.tfstate.backup" ]; then
+    mv -v ./terraform/terraform.tfstate.backup ./tfstatebackup
+else
+    echo "[INFO] ./terraform/terraform.tfstate.backup file not found. Skipping"
+fi
+
 mv -v ./terraform/.terraform.lock.hcl ./tfstatebackup
 
 echo "[INFO] copying _backend.tf to terraform folder"
