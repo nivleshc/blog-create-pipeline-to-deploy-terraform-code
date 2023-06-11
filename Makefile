@@ -12,7 +12,7 @@ TF_S3_BUCKET_KEY_PREFIX := terraform
 
 TF_WORKSPACE_KEY_PREFIX := ${TF_S3_BUCKET_KEY_PREFIX}/${PROJECT_NAME}
 TF_WORKSPACE_NAME := ${ENV}
-TF_DYNAMODB_LOCK_TABLE_NAME := ${PROJECT_NAME}_${ENV}-terraform-lock
+TF_DYNAMODB_LOCK_TABLE_NAME := ${PROJECT_NAME}-${ENV}-terraform-lock
 
 TF_CLI := docker-compose run --rm terraform_container
 
@@ -24,7 +24,11 @@ TF_VAR_project = ${PROJECT_NAME}
 
 TF_VAR_owner_email = <myemailaddress>
 
+TF_VAR_s3_bucket_name = ${TF_S3_BUCKET_NAME}
+TF_VAR_s3_bucket_key_prefix = ${TF_S3_BUCKET_KEY_PREFIX}
+
 TF_VAR_dynamodb_lock_table_name = ${TF_DYNAMODB_LOCK_TABLE_NAME}
+
 TF_VAR_codepipeline_artifacts_s3_bucket_name = ${TF_S3_BUCKET_NAME}
 TF_VAR_codepipeline_artifacts_s3_bucket_kms_key_alias = ${TF_S3_BUCKET_NAME}-${ENV}
 
@@ -55,17 +59,21 @@ all: usage
 usage:
 	@echo
 	@echo === Help: Command Reference ===
-	@echo make terraform_fmt     - format the terraform files in the standard style.
-	@echo make terraform_init    - initialise the terraform project.
-	@echo make terraform_plan    - create a plan for the changes that will be deployed.
-	@echo make terraform_apply   - apply the changes from the plan stage
-	@echo make terraform_destroy - destroy all that was deployed
+	@echo make terraform_fmt      - format the terraform files in the standard style.
+	@echo make terraform_validate - validates the terraform code.
+	@echo make terraform_init     - initialise the terraform project.
+	@echo make terraform_plan     - create a plan for the changes that will be deployed.
+	@echo make terraform_apply    - apply the changes from the plan stage
+	@echo make terraform_destroy  - destroy all that was deployed
 	@echo make - show this help
 	@echo 
 
 terraform_fmt:
 	${TF_CLI} -chdir=${TF_FOLDER} fmt -recursive .	
-	
+
+terraform_validate:
+	${TF_CLI}  -chdir=${TF_FOLDER} validate
+		
 terraform_init:
 	${TF_CLI} -chdir=${TF_FOLDER} init \
       -backend=true \

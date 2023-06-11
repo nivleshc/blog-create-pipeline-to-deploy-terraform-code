@@ -9,19 +9,29 @@ resource "aws_kms_alias" "alias" {
 
 resource "aws_s3_bucket" "s3bucket" {
   bucket = var.s3_bucket_name
+}
 
-  versioning {
-    enabled = true
+resource "aws_s3_bucket_ownership_controls" "s3bucket" {
+  bucket = aws_s3_bucket.s3bucket.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
   }
+}
 
-  acl = "private"
+resource "aws_s3_bucket_versioning" "s3bucket" {
+  bucket = aws_s3_bucket.s3bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
 
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        kms_master_key_id = aws_kms_key.key.arn
-        sse_algorithm     = "aws:kms"
-      }
+resource "aws_s3_bucket_server_side_encryption_configuration" "s3bucket" {
+  bucket = aws_s3_bucket.s3bucket.id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.key.arn
+      sse_algorithm     = "aws:kms"
     }
   }
 }
