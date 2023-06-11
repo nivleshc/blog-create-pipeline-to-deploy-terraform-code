@@ -39,6 +39,36 @@ resource "aws_codebuild_project" "infra_plan_project" {
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
     privileged_mode             = true
+
+    environment_variable {
+      name  = "TF_ENV"
+      type  = "PLAINTEXT"
+      value = var.env
+    }
+
+    environment_variable {
+      name  = "TF_PROJECT_NAME"
+      type  = "PLAINTEXT"
+      value = var.project
+    }
+
+    environment_variable {
+      name  = "TF_S3_BUCKET_NAME"
+      type  = "PLAINTEXT"
+      value = var.s3_bucket_name
+    }
+
+    environment_variable {
+      name  = "TF_S3_BUCKET_KEY_PREFIX"
+      type  = "PLAINTEXT"
+      value = var.s3_bucket_key_prefix
+    }
+
+    environment_variable {
+      name  = "TF_DYNAMODB_LOCK_TABLE_NAME"
+      type  = "PLAINTEXT"
+      value = var.dynamodb_lock_table_name
+    }
   }
 
   logs_config {
@@ -52,7 +82,84 @@ resource "aws_codebuild_project" "infra_plan_project" {
     type            = "CODECOMMIT"
     location        = aws_codecommit_repository.infra_repo.clone_url_http
     git_clone_depth = 1
-    buildspec       = "buildspec_infra_plan.yml"
+    buildspec       = <<-EOT
+      version: 0.2
+
+      env:
+        exported-variables:
+          - TERRAFORM_PLAN_STATUS
+      
+      phases:
+        pre_build:
+          commands:
+            # create the docker-compose.yml
+            - | 
+              cat << EOF > docker-compose.yml
+              version: "2.1"
+              services:
+                terraform_container:
+                  image: hashicorp/terraform:1.4.2
+                  network_mode: bridge
+                  volumes:
+                    - .:/terraform
+                  env_file:
+                    - .env.infra
+              EOF
+            # create the .env.infra file for docker compose
+            - |
+              cat << EOF > .env.infra
+              AWS_REGION=ap-southeast-2a
+              AWS_ACCESS_KEY_ID=\$${AWS_ACCESS_KEY_ID}
+              AWS_SECRET_ACCESS_KEY=\$${AWS_SECRET_ACCESS_KEY}
+              AWS_SESSION_TOKEN=\$${AWS_SESSION_TOKEN}
+              EOF
+            # create terraform backend file
+            - |
+              cat << EOF > _backend.tf
+              terraform {
+                backend "s3" {
+                  region = "ap-southeast-2"
+                }
+              }
+              EOF
+        
+        build:
+          commands:
+            - echo retrieve container credentials
+            - credentials=$(curl 169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI)
+            - export credentials
+            - export AWS_ACCESS_KEY_ID=$(echo "$${credentials}" | jq -r '.AccessKeyId')
+            - export AWS_SECRET_ACCESS_KEY=$(echo "$${credentials}" | jq -r '.SecretAccessKey')
+            - export AWS_SESSION_TOKEN=$(echo "$${credentials}" | jq -r '.Token')
+            # run terraform init
+            - | 
+              docker-compose run --rm terraform_container -chdir=./terraform init \
+                -backend=true \
+                -backend-config="bucket=$${TF_S3_BUCKET_NAME}" \
+                -backend-config="key=terraform.tfstate" \
+                -backend-config="encrypt=true" \
+                -backend-config="dynamodb_table=$${TF_DYNAMODB_LOCK_TABLE_NAME}" \
+                -backend-config="workspace_key_prefix=$${TF_S3_BUCKET_KEY_PREFIX}/tfpipeline_infra"
+            # run terraform plan
+            - |
+              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_ENV} || \
+              docker-compose run --rm terraform_container -chdir=./terraform workspace new $${TF_ENV} ; \
+              docker-compose run --rm terraform_container -chdir=./terraform plan -out=$${TF_PROJECT_NAME}_plan.tfplan -detailed-exitcode ; \
+              TERRAFORM_PLAN_STATUS=$?
+            - echo "TERRAFORM_PLAN_STATUS=$${TERRAFORM_PLAN_STATUS}"
+        
+        post_build:
+          commands:
+            # unset all sensitive environment variables
+            - unset AWS_ACCESS_KEY_ID
+            - unset AWS_SECRET_ACCESS_KEY
+            - unset AWS_SESSION_TOKEN
+      
+      artifacts:
+        files:
+          - '**/*'
+        name: infra_artifacts_$(date +%Y-%m-%d)
+    EOT
 
     git_submodules_config {
       fetch_submodules = true
@@ -76,6 +183,18 @@ resource "aws_codebuild_project" "infra_apply_project" {
     type                        = "LINUX_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
     privileged_mode             = true
+
+    environment_variable {
+      name  = "TF_ENV"
+      type  = "PLAINTEXT"
+      value = var.env
+    }
+
+    environment_variable {
+      name  = "TF_PROJECT_NAME"
+      type  = "PLAINTEXT"
+      value = var.project
+    }
   }
 
   logs_config {
@@ -89,7 +208,34 @@ resource "aws_codebuild_project" "infra_apply_project" {
     type            = "CODECOMMIT"
     location        = aws_codecommit_repository.infra_repo.clone_url_http
     git_clone_depth = 1
-    buildspec       = "buildspec_infra_apply.yml"
+    buildspec       = <<-EOT
+      version: 0.2
+      
+      phases:
+        build:
+          commands:
+            - echo retrieve container credentials
+            - credentials=$(curl 169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI)
+            - export credentials
+            - export AWS_ACCESS_KEY_ID=$(echo "$${credentials}" | jq -r '.AccessKeyId')
+            - export AWS_SECRET_ACCESS_KEY=$(echo "$${credentials}" | jq -r '.SecretAccessKey')
+            - export AWS_SESSION_TOKEN=$(echo "$${credentials}" | jq -r '.Token')
+            # run terraform apply
+            - |
+              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_ENV}; \
+              docker-compose run --rm terraform_container -chdir=./terraform apply $${TF_PROJECT_NAME}_plan.tfplan ; \
+              TERRAFORM_APPLY_STATUS=$?
+            - echo "TERRAFORM_APPLY_STATUS=$${TERRAFORM_APPLY_STATUS}"
+
+        post_build:
+          commands:
+            # unset all sensitive environment variables
+            - unset AWS_ACCESS_KEY_ID
+            - unset AWS_SECRET_ACCESS_KEY
+            - unset AWS_SESSION_TOKEN
+            # set the stage exitcode to the status of the terraform apply
+            - exit $TERRAFORM_APPLY_STATUS
+    EOT
 
     git_submodules_config {
       fetch_submodules = true
@@ -170,7 +316,7 @@ resource "aws_codepipeline" "pipeline" {
 
       configuration = {
         NotificationArn = aws_sns_topic.pipeline_approval_requests.arn
-        CustomData      = "Pipeline approval request for 'CommitId:#{SourceVariables.CommitId}  #{SourceVariables.CommitMessage}'  Terraform Plan ExitCode:#{InfraTFPlanVariables.TERRAFORM_PLAN_STATUS}"
+        CustomData      = "\nPipeline approval request for CommitId: #{SourceVariables.CommitId}  #{SourceVariables.CommitMessage}  \nTerraform Plan ExitCode: #{InfraTFPlanVariables.TERRAFORM_PLAN_STATUS}"
       }
 
       run_order = 1
