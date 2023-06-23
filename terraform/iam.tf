@@ -3,7 +3,7 @@ data "aws_kms_alias" "codepipeline_artifacts_s3_bucket_kms_key" {
 }
 
 resource "aws_iam_role" "codebuild_service_role" {
-  name = var.codebuild_service_role_name
+  name = "${var.project}_${var.env}_codebuild_service_role"
 
   assume_role_policy = <<EOF
 {
@@ -32,7 +32,7 @@ resource "aws_iam_role_policy" "codebuild_service_role_policy" {
       "Sid": "AccessToAWSCloudWatchLogs",
       "Effect": "Allow",
       "Resource": [
-        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:${var.codebuild_cloudwatch_logs_group_name}:*"
+        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:${var.project}_${var.env}_infra_codebuildloggroup:*"
       ],
       "Action": [
         "logs:CreateLogGroup",
@@ -180,7 +180,7 @@ POLICY
 }
 
 resource "aws_iam_role" "codepipeline_role" {
-  name = var.codepipeline_role_name
+  name = "${var.project}_${var.env}_codepipeline_role"
 
   assume_role_policy = <<EOF
 {
@@ -199,7 +199,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "codepipeline_policy" {
-  name = var.codepipeline_role_policy_name
+  name = "${var.project}_${var.env}_codepipeline_policy"
   role = aws_iam_role.codepipeline_role.id
 
   policy = <<EOF
@@ -289,14 +289,14 @@ resource "aws_iam_policy" "aws_codepipeline_approver_policy" {
                 "codepipeline:GetPipelineState",
                 "codepipeline:GetPipelineExecution"
             ],
-            "Resource": "${aws_codepipeline.pipeline.arn}"
+            "Resource": "${aws_codepipeline.infra_pipeline.arn}"
         },
         {
             "Effect": "Allow",
             "Action": [
                 "codepipeline:PutApprovalResult"
             ],
-            "Resource": "${aws_codepipeline.pipeline.arn}/INFRA_TF_CHANGE_APPROVAL/ApprovalAction"
+            "Resource": "${aws_codepipeline.infra_pipeline.arn}/INFRA_TF_CHANGE_APPROVAL/ApprovalAction"
         }
     ]
 }
@@ -305,7 +305,7 @@ POLICY
 
 
 resource "aws_iam_role" "cloudwatch_events_role" {
-  name = var.cloudwatch_events_role_name
+  name = "${var.project}_${var.env}_cloudwatch_events_role"
 
   assume_role_policy = <<EOF
 {
@@ -324,7 +324,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "cloudwatch_events_policy" {
-  name = var.cloudwatch_events_role_policy_name
+  name = "${var.project}_${var.env}_cloudwatch_events_policy"
   role = aws_iam_role.cloudwatch_events_role.id
 
   policy = <<EOF
@@ -338,7 +338,7 @@ resource "aws_iam_role_policy" "cloudwatch_events_policy" {
         "codepipeline:StartPipelineExecution"
       ],
       "Resource": [
-        "${aws_codepipeline.pipeline.arn}"
+        "${aws_codepipeline.infra_pipeline.arn}"
       ]
     }
   ]

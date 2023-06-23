@@ -22,7 +22,7 @@ TF_PLAN_FILENAME := ${PROJECT_NAME}_plan.tfplan
 TF_VAR_env = ${ENV}
 TF_VAR_project = ${PROJECT_NAME}
 
-TF_VAR_owner_email = <myemailaddress>
+TF_VAR_infra_approver_email = <infraapproveremailaddress>
 
 TF_VAR_s3_bucket_name = ${TF_S3_BUCKET_NAME}
 TF_VAR_s3_bucket_key_prefix = ${TF_S3_BUCKET_KEY_PREFIX}
@@ -32,23 +32,7 @@ TF_VAR_dynamodb_lock_table_name = ${TF_DYNAMODB_LOCK_TABLE_NAME}
 TF_VAR_codepipeline_artifacts_s3_bucket_name = ${TF_S3_BUCKET_NAME}
 TF_VAR_codepipeline_artifacts_s3_bucket_kms_key_alias = ${TF_S3_BUCKET_NAME}-${ENV}
 
-TF_VAR_codepipeline_pipeline_name = ${PROJECT_NAME}_${ENV}_pipeline
-TF_VAR_codepipeline_role_name = ${PROJECT_NAME}_${ENV}_codepipeline_role
-TF_VAR_codepipeline_role_policy_name = ${TFVAR_codepipeline_role_name}_policy
-
-TF_VAR_codecommit_infra_repo_name = ${PROJECT_NAME}_${ENV}_infra
 TF_VAR_codecommit_infra_repo_default_branch_name = main
-TF_VAR_codecommit_app_repo_name = ${PROJECT_NAME}_${ENV}_app
-TF_VAR_codecommit_app_repo_default_branch_name = main
-
-TF_VAR_codebuild_project_name_prefix = ${PROJECT_NAME}_${ENV}
-TF_VAR_codebuild_service_role_name = ${PROJECT_NAME}-${ENV}-codebuild-service-role
-TF_VAR_codebuild_cloudwatch_logs_group_name = ${PROJECT_NAME}_${ENV}_codebuildloggroup
-TF_VAR_codebuild_cloudwatch_logs_stream_name = ${PROJECT_NAME}_${ENV}_codebuildlogstream
-
-TF_VAR_cloudwatch_events_rule_name = ${PROJECT_NAME}_${ENV}_pipeline_trigger
-TF_VAR_cloudwatch_events_role_name = ${PROJECT_NAME}_${ENV}_cloudwatch_events_role
-TF_VAR_cloudwatch_events_role_policy_name = ${TFVAR_cloudwatch_events_role_name}_policy
 
 .EXPORT_ALL_VARIABLES:
 
@@ -73,7 +57,7 @@ terraform_fmt:
 	${TF_CLI} -chdir=${TF_FOLDER} fmt -recursive .	
 
 terraform_validate:
-	${TF_CLI}  -chdir=${TF_FOLDER} validate
+	${TF_CLI} -chdir=${TF_FOLDER} validate
 		
 terraform_init:
 	${TF_CLI} -chdir=${TF_FOLDER} init \
@@ -98,4 +82,4 @@ terraform_destroy:
 	${TF_CLI} -chdir=${TF_FOLDER} destroy
 
 clean:
-	cd ${TF_FOLDER} && rm -rf .terraform && rm -f ${TF_PLAN_FILENAME}
+	cd ${TF_FOLDER} && rm -rfv .terraform && rm -fv ${TF_PLAN_FILENAME}
