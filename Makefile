@@ -23,6 +23,7 @@ TF_VAR_env = ${ENV}
 TF_VAR_project = ${PROJECT_NAME}
 
 TF_VAR_infra_approver_email = <infraapproveremailaddress>
+TF_VAR_app_approver_email = <appapproveremailaddress>
 
 TF_VAR_s3_bucket_name = ${TF_S3_BUCKET_NAME}
 TF_VAR_s3_bucket_key_prefix = ${TF_S3_BUCKET_KEY_PREFIX}
@@ -33,6 +34,7 @@ TF_VAR_codepipeline_artifacts_s3_bucket_name = ${TF_S3_BUCKET_NAME}
 TF_VAR_codepipeline_artifacts_s3_bucket_kms_key_alias = ${TF_S3_BUCKET_NAME}-${ENV}
 
 TF_VAR_codecommit_infra_repo_default_branch_name = main
+TF_VAR_codecommit_app_repo_default_branch_name = main
 
 .EXPORT_ALL_VARIABLES:
 

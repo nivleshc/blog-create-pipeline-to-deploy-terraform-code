@@ -32,7 +32,8 @@ resource "aws_iam_role_policy" "codebuild_service_role_policy" {
       "Sid": "AccessToAWSCloudWatchLogs",
       "Effect": "Allow",
       "Resource": [
-        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:${var.project}_${var.env}_infra_codebuildloggroup:*"
+        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${var.project}/${var.env}/infra/codebuild:*",
+        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${var.project}/${var.env}/app/codebuild:*"
       ],
       "Action": [
         "logs:CreateLogGroup",
@@ -239,7 +240,8 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
       "Sid": "AccessToCodeCommitRepo",      
       "Effect": "Allow",
       "Resource": [
-        "${aws_codecommit_repository.infra_repo.arn}"
+        "${aws_codecommit_repository.infra_repo.arn}",
+        "${aws_codecommit_repository.app_repo.arn}"
       ],
       "Action": [
         "codecommit:GetBranch",
@@ -289,14 +291,20 @@ resource "aws_iam_policy" "aws_codepipeline_approver_policy" {
                 "codepipeline:GetPipelineState",
                 "codepipeline:GetPipelineExecution"
             ],
-            "Resource": "${aws_codepipeline.infra_pipeline.arn}"
+            "Resource": [
+              "${aws_codepipeline.infra_pipeline.arn}",
+              "${aws_codepipeline.app_pipeline.arn}"
+            ]
         },
         {
             "Effect": "Allow",
             "Action": [
                 "codepipeline:PutApprovalResult"
             ],
-            "Resource": "${aws_codepipeline.infra_pipeline.arn}/INFRA_TF_CHANGE_APPROVAL/ApprovalAction"
+            "Resource": [ 
+              "${aws_codepipeline.infra_pipeline.arn}/INFRA_TF_CHANGE_APPROVAL/ApprovalAction",
+              "${aws_codepipeline.app_pipeline.arn}/APP_TF_CHANGE_APPROVAL/ApprovalAction"
+            ]
         }
     ]
 }
@@ -338,7 +346,8 @@ resource "aws_iam_role_policy" "cloudwatch_events_policy" {
         "codepipeline:StartPipelineExecution"
       ],
       "Resource": [
-        "${aws_codepipeline.infra_pipeline.arn}"
+        "${aws_codepipeline.infra_pipeline.arn}",
+        "${aws_codepipeline.app_pipeline.arn}"
       ]
     }
   ]

@@ -25,19 +25,22 @@ all: usage
 usage:
 	@echo
 	@echo === Help: Command Reference ===
-	@echo make terraform_fmt               - format the terraform files in the standard style.
-	@echo make terraform_validate          - validates the terraform code.
-	@echo make terraform_prereq_init       - initialise the terraform prereq project.
-	@echo make terraform_prereq_show       - show the prereq resources.
-	@echo make terraform_prereq_destroy    - destroy all prereq resources that were deployed
-	@echo make terraform_pipline_init      - initialise the terraform pipeline project.
-	@echo make terraform_pipeline_show     - show the pipeline resources.
-	@echo make terraform_pipeline_destroy  - destroy all pipeline resources that were deployed
-	@echo make terraform_infra_init        - initialise the terraform infra project.
-	@echo make terraform_infra_show        - show the infra resources.
-	@echo make terraform_infra_destroy     - destroy all infra resources that were deployed
-	@echo make clean                       - delete all .terraform/* and .terraform.lock.hcl files
-	@echo make                             - show this help
+	@echo make terraform_fmt                     - format the terraform files in the standard style.
+	@echo make terraform_validate                - validates the terraform code.
+	@echo make terraform_prereq_init             - initialise the terraform prereq project.
+	@echo make terraform_prereq_show             - show all the prereq resources.
+	@echo make terraform_prereq_destroy          - destroy all prereq resources that were deployed
+	@echo make terraform_pipeline_init           - initialise the terraform pipeline project.
+	@echo make terraform_pipeline_show           - show all the pipeline resources.
+	@echo make terraform_pipeline_destroy        - destroy all pipeline resources that were deployed
+	@echo make terraform_infra_init              - initialise the terraform infra project.
+	@echo make terraform_infra_show              - show the infra resources.
+	@echo make terraform_infra_destroy           - destroy all infra resources that were deployed
+	@echo make terraform_app_init                - initialise the terraform app project.
+	@echo make terraform_app_show                - show the app resources.
+	@echo make terraform_app_destroy             - destroy all app resources that were deployed
+	@echo make clean                             - delete all .terraform/* and .terraform.lock.hcl files
+	@echo make                                   - show this help
 	@echo 
 
 terraform_fmt:
@@ -47,6 +50,11 @@ terraform_validate:
 	${TF_CLI}  -chdir=${TF_FOLDER} validate
 
 clean:
+	@echo "[INFO] deleting ${TF_FOLDER}/app/.terraform/*"
+	rm -rvf ${TF_FOLDER}/app/.terraform
+	@echo "[INFO] deleting ${TF_FOLDER}/app/.terraform.lock.hcl"
+	rm -fv ${TF_FOLDER}/app/.terraform.lock.hcl
+
 	@echo "[INFO] deleting ${TF_FOLDER}/infra/.terraform/*"
 	rm -rvf ${TF_FOLDER}/infra/.terraform
 	@echo "[INFO] deleting ${TF_FOLDER}/infra/.terraform.lock.hcl"
@@ -89,6 +97,15 @@ terraform_infra_init:
       -backend-config="dynamodb_table=${TF_DYNAMODB_LOCK_TABLE_NAME}" \
       -backend-config="workspace_key_prefix=${TF_WORKSPACE_KEY_PREFIX}_infra"
 
+terraform_app_init:
+	${TF_CLI} -chdir=${TF_FOLDER}/app init \
+      -backend=true \
+      -backend-config="bucket=${TF_S3_BUCKET_NAME}" \
+      -backend-config="key=terraform.tfstate" \
+      -backend-config="encrypt=true" \
+      -backend-config="dynamodb_table=${TF_DYNAMODB_LOCK_TABLE_NAME}" \
+      -backend-config="workspace_key_prefix=${TF_WORKSPACE_KEY_PREFIX}_app"
+
 terraform_prereq_show:
 	${TF_CLI} -chdir=${TF_FOLDER}/prereq workspace select ${TF_WORKSPACE_NAME} ; \
 	${TF_CLI} -chdir=${TF_FOLDER}/prereq state list
@@ -101,6 +118,10 @@ terraform_infra_show:
 	${TF_CLI} -chdir=${TF_FOLDER}/infra workspace select ${TF_WORKSPACE_NAME} ; \
 	${TF_CLI} -chdir=${TF_FOLDER}/infra state list
 
+terraform_app_show:
+	${TF_CLI} -chdir=${TF_FOLDER}/app workspace select ${TF_WORKSPACE_NAME} ; \
+	${TF_CLI} -chdir=${TF_FOLDER}/app state list
+
 terraform_prereq_destroy:
 	${TF_CLI} -chdir=${TF_FOLDER}/prereq workspace select ${TF_WORKSPACE_NAME} ; \
 	${TF_CLI} -chdir=${TF_FOLDER}/prereq destroy
@@ -112,3 +133,7 @@ terraform_pipeline_destroy:
 terraform_infra_destroy:
 	${TF_CLI} -chdir=${TF_FOLDER}/infra workspace select ${TF_WORKSPACE_NAME} ; \
 	${TF_CLI} -chdir=${TF_FOLDER}/infra destroy
+
+terraform_app_destroy:
+	${TF_CLI} -chdir=${TF_FOLDER}/app workspace select ${TF_WORKSPACE_NAME} ; \
+	${TF_CLI} -chdir=${TF_FOLDER}/app destroy
