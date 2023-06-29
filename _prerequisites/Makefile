@@ -59,4 +59,6 @@ migrate_terraform_statefile:
 	bash ./scripts/migrate_terraform_statefile.sh
 
 clean:
-	cd ${TF_FOLDER} && rm -rf .terraform && rm -f ${TF_PLAN_FILENAME}
+	rm -rfv ${TF_FOLDER}/.terraform
+	rm -fv ${TF_FOLDER}/${TF_PLAN_FILENAME}
+	rm -rfv ./tfstatebackup

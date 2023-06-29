@@ -86,7 +86,9 @@ After the prerequisites have been deployed, run the following command to deploy 
 
     - TF_S3_BUCKET_NAME - change \<mys3bucketname\> to the Amazon S3 bucket name that was used for prerequisites.
 
-    - TF_VAR_owner_email - change \<myemailaddress\> to your email address. This email address will be used to approve/reject changes that are deployed to the Serverless pipeline.
+    - TF_VAR_infra_approver_email - change \<infraapproveremailaddress\> to the infrastructure approver's email address. This email address will be used to approve/reject infrastructure changes that are deployed to the Serverless infrastructure pipeline.
+
+    - TF_VAR_app_approver_email - change \<appapproveremailaddress\> to the application approver's email address. This email address will be used to approve/reject application changes that are deployed to the Serverless application pipeline.
 
 2. Update the values under **default_tags** in file terraform/_provider.tf to match those that were used for the prerequisites.
 
@@ -105,4 +107,7 @@ After the prerequisites have been deployed, run the following command to deploy 
 ``
 6. Amazon SNS will send an email to the owner email address that was provided. Ensure you click on the link, to confirm otherwise, you won't receive any emails when the Servereless pipeline runs.
 
-Full details for this solution can be found at https://nivleshc.wordpress.com/2023/03/28/use-aws-codepipeline-aws-codecommit-aws-codebuild-amazon-simple-storage-service-amazon-dynamodb-and-docker-to-create-a-pipeline-to-deploy-terraform-code/
+Full details for this solution can be found at below locations
+- https://nivleshc.wordpress.com/2023/03/28/use-aws-codepipeline-aws-codecommit-aws-codebuild-amazon-simple-storage-service-amazon-dynamodb-and-docker-to-create-a-pipeline-to-deploy-terraform-code/
+
+- https://nivleshc.wordpress.com/2023/06/29/add-an-application-pipeline-to-the-serverless-terraform-pipeline/
