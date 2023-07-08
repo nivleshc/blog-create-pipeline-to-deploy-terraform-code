@@ -3,7 +3,7 @@ data "aws_kms_alias" "codepipeline_artifacts_s3_bucket_kms_key" {
 }
 
 resource "aws_iam_role" "codebuild_service_role" {
-  name = "${var.project}_${var.env}_codebuild_service_role"
+  name = "${var.project_name}_${var.env}_codebuild_service_role"
 
   assume_role_policy = <<EOF
 {
@@ -32,8 +32,8 @@ resource "aws_iam_role_policy" "codebuild_service_role_policy" {
       "Sid": "AccessToAWSCloudWatchLogs",
       "Effect": "Allow",
       "Resource": [
-        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${var.project}/${var.env}/infra/codebuild:*",
-        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${var.project}/${var.env}/app/codebuild:*"
+        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${var.project_name}/${var.env}/infra/codebuild:*",
+        "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${var.project_name}/${var.env}/app/codebuild:*"
       ],
       "Action": [
         "logs:CreateLogGroup",
@@ -181,7 +181,7 @@ POLICY
 }
 
 resource "aws_iam_role" "codepipeline_role" {
-  name = "${var.project}_${var.env}_codepipeline_role"
+  name = "${var.project_name}_${var.env}_codepipeline_role"
 
   assume_role_policy = <<EOF
 {
@@ -200,7 +200,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "codepipeline_policy" {
-  name = "${var.project}_${var.env}_codepipeline_policy"
+  name = "${var.project_name}_${var.env}_codepipeline_policy"
   role = aws_iam_role.codepipeline_role.id
 
   policy = <<EOF
@@ -313,7 +313,7 @@ POLICY
 
 
 resource "aws_iam_role" "cloudwatch_events_role" {
-  name = "${var.project}_${var.env}_cloudwatch_events_role"
+  name = "${var.project_name}_${var.env}_cloudwatch_events_role"
 
   assume_role_policy = <<EOF
 {
@@ -332,7 +332,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "cloudwatch_events_policy" {
-  name = "${var.project}_${var.env}_cloudwatch_events_policy"
+  name = "${var.project_name}_${var.env}_cloudwatch_events_policy"
   role = aws_iam_role.cloudwatch_events_role.id
 
   policy = <<EOF

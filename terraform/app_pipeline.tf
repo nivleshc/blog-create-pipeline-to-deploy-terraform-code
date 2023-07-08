@@ -1,11 +1,11 @@
 resource "aws_codecommit_repository" "app_repo" {
-  repository_name = "${var.project}_${var.env}_app"
+  repository_name = "${var.project_name}_${var.env}_app"
   description     = "The AWS CodeCommit repository where the application code will be stored."
   default_branch  = var.codecommit_app_repo_default_branch_name
 }
 
 resource "aws_codebuild_project" "app_plan_project" {
-  name                   = "${var.project}_${var.env}_app_plan"
+  name                   = "${var.project_name}_${var.env}_app_plan"
   description            = "AWS CodeBuild Project to display the proposed application changes"
   build_timeout          = "5"
   concurrent_build_limit = 1
@@ -30,7 +30,7 @@ resource "aws_codebuild_project" "app_plan_project" {
     environment_variable {
       name  = "TF_VAR_project_name"
       type  = "PLAINTEXT"
-      value = var.project
+      value = var.project_name
     }
 
     environment_variable {
@@ -54,8 +54,8 @@ resource "aws_codebuild_project" "app_plan_project" {
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/${var.project}/${var.env}/app/codebuild"
-      stream_name = "${var.project}_${var.env}_app_plan"
+      group_name  = "/${var.project_name}/${var.env}/app/codebuild"
+      stream_name = "${var.project_name}_${var.env}_app_plan"
     }
   }
 
@@ -93,6 +93,11 @@ resource "aws_codebuild_project" "app_plan_project" {
               AWS_ACCESS_KEY_ID=\$${AWS_ACCESS_KEY_ID}
               AWS_SECRET_ACCESS_KEY=\$${AWS_SECRET_ACCESS_KEY}
               AWS_SESSION_TOKEN=\$${AWS_SESSION_TOKEN}
+              TF_VAR_env=\$${TF_VAR_env}
+              TF_VAR_project_name=\$${TF_VAR_project_name}
+              TF_VAR_s3_bucket_name=\$${TF_VAR_s3_bucket_name}
+              TF_VAR_s3_bucket_key_prefix=\$${TF_VAR_s3_bucket_key_prefix}
+              TF_VAR_dynamodb_lock_table_name=\$${TF_VAR_dynamodb_lock_table_name}
               EOF
             # create terraform backend file
             - |
@@ -149,7 +154,7 @@ resource "aws_codebuild_project" "app_plan_project" {
 }
 
 resource "aws_codebuild_project" "app_apply_project" {
-  name                   = "${var.project}_${var.env}_app_apply"
+  name                   = "${var.project_name}_${var.env}_app_apply"
   description            = "AWS CodeBuild Project to apply the proposed application changes"
   build_timeout          = "60"
   concurrent_build_limit = 1
@@ -166,22 +171,22 @@ resource "aws_codebuild_project" "app_apply_project" {
     privileged_mode             = true
 
     environment_variable {
-      name  = "TF_ENV"
+      name  = "TF_VAR_env"
       type  = "PLAINTEXT"
       value = var.env
     }
 
     environment_variable {
-      name  = "TF_PROJECT_NAME"
+      name  = "TF_VAR_project_name"
       type  = "PLAINTEXT"
-      value = var.project
+      value = var.project_name
     }
   }
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/${var.project}/${var.env}/app/codebuild"
-      stream_name = "${var.project}_${var.env}_app_apply"
+      group_name  = "/${var.project_name}/${var.env}/app/codebuild"
+      stream_name = "${var.project_name}_${var.env}_app_apply"
     }
   }
 
@@ -203,8 +208,8 @@ resource "aws_codebuild_project" "app_apply_project" {
             - export AWS_SESSION_TOKEN=$(echo "$${credentials}" | jq -r '.Token')
             # run terraform apply
             - |
-              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_ENV}; \
-              docker-compose run --rm terraform_container -chdir=./terraform apply $${TF_PROJECT_NAME}_plan.tfplan ; \
+              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_VAR_env}; \
+              docker-compose run --rm terraform_container -chdir=./terraform apply $${TF_VAR_project_name}_plan.tfplan ; \
               TERRAFORM_APPLY_STATUS=$?
             - echo "TERRAFORM_APPLY_STATUS=$${TERRAFORM_APPLY_STATUS}"
 
@@ -225,7 +230,7 @@ resource "aws_codebuild_project" "app_apply_project" {
 }
 
 resource "aws_sns_topic" "app_pipeline_approval_requests" {
-  name = "${var.project}_${var.env}_app_pipeline_approval_requests"
+  name = "${var.project_name}_${var.env}_app_pipeline_approval_requests"
 }
 
 resource "aws_sns_topic_subscription" "app_approver_subscription" {
@@ -235,7 +240,7 @@ resource "aws_sns_topic_subscription" "app_approver_subscription" {
 }
 
 resource "aws_codepipeline" "app_pipeline" {
-  name     = "${var.project}_${var.env}_app_pipeline"
+  name     = "${var.project_name}_${var.env}_app_pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
   artifact_store {
     location = data.aws_s3_bucket.codepipeline_artifacts_s3_bucket.id
@@ -325,7 +330,7 @@ resource "aws_codepipeline" "app_pipeline" {
 }
 
 resource "aws_cloudwatch_event_rule" "trigger_app_pipeline" {
-  name        = "${var.project}_${var.env}_app_pipeline_trigger"
+  name        = "${var.project_name}_${var.env}_app_pipeline_trigger"
   description = "Trigger the Application Pipeline"
 
   event_pattern = <<PATTERN
@@ -356,7 +361,7 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "app_pipeline" {
-  target_id = "${var.project}_${var.env}_app_pipeline_target"
+  target_id = "${var.project_name}_${var.env}_app_pipeline_target"
   rule      = aws_cloudwatch_event_rule.trigger_app_pipeline.id
   arn       = aws_codepipeline.app_pipeline.arn
 

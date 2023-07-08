@@ -1,11 +1,11 @@
 resource "aws_codecommit_repository" "infra_repo" {
-  repository_name = "${var.project}_${var.env}_infra"
+  repository_name = "${var.project_name}_${var.env}_infra"
   description     = "The AWS CodeCommit repository where the infra code will be stored."
   default_branch  = var.codecommit_infra_repo_default_branch_name
 }
 
 resource "aws_codebuild_project" "infra_plan_project" {
-  name                   = "${var.project}_${var.env}_infra_plan"
+  name                   = "${var.project_name}_${var.env}_infra_plan"
   description            = "AWS CodeBuild Project to display the proposed infrastructure changes"
   build_timeout          = "5"
   concurrent_build_limit = 1
@@ -22,31 +22,31 @@ resource "aws_codebuild_project" "infra_plan_project" {
     privileged_mode             = true
 
     environment_variable {
-      name  = "TF_ENV"
+      name  = "TF_VAR_env"
       type  = "PLAINTEXT"
       value = var.env
     }
 
     environment_variable {
-      name  = "TF_PROJECT_NAME"
+      name  = "TF_VAR_project_name"
       type  = "PLAINTEXT"
-      value = var.project
+      value = var.project_name
     }
 
     environment_variable {
-      name  = "TF_S3_BUCKET_NAME"
+      name  = "TF_VAR_s3_bucket_name"
       type  = "PLAINTEXT"
       value = var.s3_bucket_name
     }
 
     environment_variable {
-      name  = "TF_S3_BUCKET_KEY_PREFIX"
+      name  = "TF_VAR_s3_bucket_key_prefix"
       type  = "PLAINTEXT"
       value = var.s3_bucket_key_prefix
     }
 
     environment_variable {
-      name  = "TF_DYNAMODB_LOCK_TABLE_NAME"
+      name  = "TF_VAR_dynamodb_lock_table_name"
       type  = "PLAINTEXT"
       value = var.dynamodb_lock_table_name
     }
@@ -54,8 +54,8 @@ resource "aws_codebuild_project" "infra_plan_project" {
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/${var.project}/${var.env}/infra/codebuild"
-      stream_name = "${var.project}_${var.env}_infra_plan"
+      group_name  = "/${var.project_name}/${var.env}/infra/codebuild"
+      stream_name = "${var.project_name}_${var.env}_infra_plan"
     }
   }
 
@@ -93,6 +93,11 @@ resource "aws_codebuild_project" "infra_plan_project" {
               AWS_ACCESS_KEY_ID=\$${AWS_ACCESS_KEY_ID}
               AWS_SECRET_ACCESS_KEY=\$${AWS_SECRET_ACCESS_KEY}
               AWS_SESSION_TOKEN=\$${AWS_SESSION_TOKEN}
+              TF_VAR_env=\$${TF_VAR_env}
+              TF_VAR_project_name=\$${TF_VAR_project_name}
+              TF_VAR_s3_bucket_name=\$${TF_VAR_s3_bucket_name}
+              TF_VAR_s3_bucket_key_prefix=\$${TF_VAR_s3_bucket_key_prefix}
+              TF_VAR_dynamodb_lock_table_name=\$${TF_VAR_dynamodb_lock_table_name}
               EOF
             # create terraform backend file
             - |
@@ -116,16 +121,16 @@ resource "aws_codebuild_project" "infra_plan_project" {
             - | 
               docker-compose run --rm terraform_container -chdir=./terraform init \
                 -backend=true \
-                -backend-config="bucket=$${TF_S3_BUCKET_NAME}" \
+                -backend-config="bucket=$${TF_VAR_s3_bucket_name}" \
                 -backend-config="key=terraform.tfstate" \
                 -backend-config="encrypt=true" \
-                -backend-config="dynamodb_table=$${TF_DYNAMODB_LOCK_TABLE_NAME}" \
-                -backend-config="workspace_key_prefix=$${TF_S3_BUCKET_KEY_PREFIX}/$${TF_PROJECT_NAME}_infra"
+                -backend-config="dynamodb_table=$${TF_VAR_dynamodb_lock_table_name}" \
+                -backend-config="workspace_key_prefix=$${TF_VAR_s3_bucket_key_prefix}/$${TF_VAR_project_name}_infra"
             # run terraform plan
             - |
-              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_ENV} || \
-              docker-compose run --rm terraform_container -chdir=./terraform workspace new $${TF_ENV} ; \
-              docker-compose run --rm terraform_container -chdir=./terraform plan -out=$${TF_PROJECT_NAME}_plan.tfplan -detailed-exitcode ; \
+              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_VAR_env} || \
+              docker-compose run --rm terraform_container -chdir=./terraform workspace new $${TF_VAR_env} ; \
+              docker-compose run --rm terraform_container -chdir=./terraform plan -out=$${TF_VAR_project_name}_plan.tfplan -detailed-exitcode ; \
               TERRAFORM_PLAN_STATUS=$?
             - echo "TERRAFORM_PLAN_STATUS=$${TERRAFORM_PLAN_STATUS}"
         
@@ -149,7 +154,7 @@ resource "aws_codebuild_project" "infra_plan_project" {
 }
 
 resource "aws_codebuild_project" "infra_apply_project" {
-  name                   = "${var.project}_${var.env}_infra_apply"
+  name                   = "${var.project_name}_${var.env}_infra_apply"
   description            = "AWS CodeBuild Project to apply the proposed infrastructure changes"
   build_timeout          = "60"
   concurrent_build_limit = 1
@@ -166,22 +171,22 @@ resource "aws_codebuild_project" "infra_apply_project" {
     privileged_mode             = true
 
     environment_variable {
-      name  = "TF_ENV"
+      name  = "TF_VAR_env"
       type  = "PLAINTEXT"
       value = var.env
     }
 
     environment_variable {
-      name  = "TF_PROJECT_NAME"
+      name  = "TF_VAR_project_name"
       type  = "PLAINTEXT"
-      value = var.project
+      value = var.project_name
     }
   }
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/${var.project}/${var.env}/infra/codebuild"
-      stream_name = "${var.project}_${var.env}_infra_apply"
+      group_name  = "/${var.project_name}/${var.env}/infra/codebuild"
+      stream_name = "${var.project_name}_${var.env}_infra_apply"
     }
   }
 
@@ -203,8 +208,8 @@ resource "aws_codebuild_project" "infra_apply_project" {
             - export AWS_SESSION_TOKEN=$(echo "$${credentials}" | jq -r '.Token')
             # run terraform apply
             - |
-              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_ENV}; \
-              docker-compose run --rm terraform_container -chdir=./terraform apply $${TF_PROJECT_NAME}_plan.tfplan ; \
+              docker-compose run --rm terraform_container -chdir=./terraform workspace select $${TF_VAR_env}; \
+              docker-compose run --rm terraform_container -chdir=./terraform apply $${TF_VAR_project_name}_plan.tfplan ; \
               TERRAFORM_APPLY_STATUS=$?
             - echo "TERRAFORM_APPLY_STATUS=$${TERRAFORM_APPLY_STATUS}"
 
@@ -225,7 +230,7 @@ resource "aws_codebuild_project" "infra_apply_project" {
 }
 
 resource "aws_sns_topic" "infra_pipeline_approval_requests" {
-  name = "${var.project}_${var.env}_infra_pipeline_approval_requests"
+  name = "${var.project_name}_${var.env}_infra_pipeline_approval_requests"
 }
 
 resource "aws_sns_topic_subscription" "infra_approver_subscription" {
@@ -235,7 +240,7 @@ resource "aws_sns_topic_subscription" "infra_approver_subscription" {
 }
 
 resource "aws_codepipeline" "infra_pipeline" {
-  name     = "${var.project}_${var.env}_infra_pipeline"
+  name     = "${var.project_name}_${var.env}_infra_pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
   artifact_store {
     location = data.aws_s3_bucket.codepipeline_artifacts_s3_bucket.id
@@ -325,7 +330,7 @@ resource "aws_codepipeline" "infra_pipeline" {
 }
 
 resource "aws_cloudwatch_event_rule" "trigger_infra_pipeline" {
-  name        = "${var.project}_${var.env}_infra_pipeline_trigger"
+  name        = "${var.project_name}_${var.env}_infra_pipeline_trigger"
   description = "Trigger the Infrastructure Pipeline"
 
   event_pattern = <<PATTERN
@@ -356,7 +361,7 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "infra_pipeline" {
-  target_id = "${var.project}_${var.env}_infra_pipeline_target"
+  target_id = "${var.project_name}_${var.env}_infra_pipeline_target"
   rule      = aws_cloudwatch_event_rule.trigger_infra_pipeline.id
   arn       = aws_codepipeline.infra_pipeline.arn
 
