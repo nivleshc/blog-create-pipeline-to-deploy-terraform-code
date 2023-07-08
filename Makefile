@@ -20,7 +20,7 @@ TF_PLAN_FILENAME := ${PROJECT_NAME}_plan.tfplan
 
 # define terraform variables
 TF_VAR_env = ${ENV}
-TF_VAR_project = ${PROJECT_NAME}
+TF_VAR_project_name = ${PROJECT_NAME}
 
 TF_VAR_infra_approver_email = <infraapproveremailaddress>
 TF_VAR_app_approver_email = <appapproveremailaddress>

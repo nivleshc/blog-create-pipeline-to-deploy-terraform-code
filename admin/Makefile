@@ -95,7 +95,8 @@ terraform_infra_init:
       -backend-config="key=terraform.tfstate" \
       -backend-config="encrypt=true" \
       -backend-config="dynamodb_table=${TF_DYNAMODB_LOCK_TABLE_NAME}" \
-      -backend-config="workspace_key_prefix=${TF_WORKSPACE_KEY_PREFIX}_infra"
+      -backend-config="workspace_key_prefix=${TF_WORKSPACE_KEY_PREFIX}_infra" \
+	  -var="env=${ENV}"
 
 terraform_app_init:
 	${TF_CLI} -chdir=${TF_FOLDER}/app init \
@@ -104,7 +105,14 @@ terraform_app_init:
       -backend-config="key=terraform.tfstate" \
       -backend-config="encrypt=true" \
       -backend-config="dynamodb_table=${TF_DYNAMODB_LOCK_TABLE_NAME}" \
-      -backend-config="workspace_key_prefix=${TF_WORKSPACE_KEY_PREFIX}_app"
+      -backend-config="workspace_key_prefix=${TF_WORKSPACE_KEY_PREFIX}_app" \
+	  -var="env=${ENV}" \
+	  -var="project_name=${PROJECT_NAME}" \
+	  -var="s3_bucket_name=${TF_S3_BUCKET_NAME}" \
+	  -var="s3_bucket_key_prefix=${TF_S3_BUCKET_KEY_PREFIX}" \
+	  -var="s3_bucket_key=terraform.tfstate" \
+	  -var="region=ap-southeast-2" \
+	  -var="dynamodb_lock_table_name=${TF_DYNAMODB_LOCK_TABLE_NAME}"
 
 terraform_prereq_show:
 	${TF_CLI} -chdir=${TF_FOLDER}/prereq workspace select ${TF_WORKSPACE_NAME} ; \
@@ -132,8 +140,15 @@ terraform_pipeline_destroy:
 
 terraform_infra_destroy:
 	${TF_CLI} -chdir=${TF_FOLDER}/infra workspace select ${TF_WORKSPACE_NAME} ; \
-	${TF_CLI} -chdir=${TF_FOLDER}/infra destroy
+	${TF_CLI} -chdir=${TF_FOLDER}/infra destroy -var="env=${ENV}"
 
 terraform_app_destroy:
 	${TF_CLI} -chdir=${TF_FOLDER}/app workspace select ${TF_WORKSPACE_NAME} ; \
-	${TF_CLI} -chdir=${TF_FOLDER}/app destroy
+	${TF_CLI} -chdir=${TF_FOLDER}/app destroy \
+	-var="env=${ENV}" \
+	-var="project_name=${PROJECT_NAME}" \
+	-var="s3_bucket_name=${TF_S3_BUCKET_NAME}" \
+	-var="s3_bucket_key_prefix=${TF_S3_BUCKET_KEY_PREFIX}" \
+	-var="s3_bucket_key=terraform.tfstate" \
+	-var="region=ap-southeast-2" \
+	-var="dynamodb_lock_table_name=${TF_DYNAMODB_LOCK_TABLE_NAME}"
