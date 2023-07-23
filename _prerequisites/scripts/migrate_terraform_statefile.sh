@@ -20,5 +20,5 @@ mv -v ./terraform/.terraform.lock.hcl ./tfstatebackup
 echo "[INFO] copying _backend.tf to terraform folder"
 cp -v ./temp/_backend.tf ./terraform
 
-echo "[INFO] replacing Makefile with commands compatible with Amazon S3 and Amazon DynamoDB backend"
+echo "[INFO] Replacing Makefile with commands compatible with Amazon S3 and Amazon DynamoDB backend"
 cp -vf ./temp/Makefile.s3backend Makefile
