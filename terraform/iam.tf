@@ -159,10 +159,37 @@ resource "aws_iam_role_policy" "codebuild_service_role_policy" {
         "iam:CreatePolicy",
         "iam:DeletePolicy",
         "iam:ListPolicyVersions",
-        "iam:ListRolePolicies"
+        "iam:ListRolePolicies",
+        "iam:GetPolicyVersion"
       ],
       "Resource": "*",
       "Effect": "Allow"
+    },
+    {
+      "Sid": "AccessToWriteGrafanaCredsToSSM1",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeParameters"
+      ],
+      "Resource": [
+        "arn:aws:ssm:*:${local.account_id}:*"
+      ]
+    },
+    {
+      "Sid": "AccessToWriteGrafanaCredsToSSM2",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:PutParameter",
+        "ssm:ListTagsForResource",
+        "ssm:AddTagsToResource",
+        "ssm:DeleteParameter"
+      ],
+      "Resource": [
+        "arn:aws:ssm:*:${local.account_id}:parameter/${var.env}/*"
+      ]
     },
     {
       "Sid": "AccessToAmazonDynamoDB",
